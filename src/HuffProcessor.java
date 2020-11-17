@@ -149,8 +149,13 @@ public class HuffProcessor {
 	public void decompress(BitInputStream in, BitOutputStream out){
 
 		int bits = in.readBits(BITS_PER_INT);
+
+		// exception
+		if (bits == -1) {
+			throw new HuffException("invalid header: " + bits);
+		}
 		if (bits != HUFF_TREE) {
-			throw new HuffException("invalid magic number "+ bits);
+			throw new HuffException("invalid header:  "+ bits);
 		}
 		// call helper function
 		HuffNode root = readTree(in);
@@ -176,6 +181,7 @@ public class HuffProcessor {
 					current = current.myRight;
 				}
 
+				// if both are null ...
 				if (current.myRight == null && current.myLeft == null) {
 					// if myValue is PseudoEOF, break loop
 					if (current.myValue == PSEUDO_EOF) {
@@ -193,10 +199,9 @@ public class HuffProcessor {
 				}
 
 			}
-			// call out.close
-			out.close();
 		}
-
+		// call out.close
+		out.close();
 	}
 	private HuffNode readTree(BitInputStream in) {
 		int bit = in.readBits(1);
