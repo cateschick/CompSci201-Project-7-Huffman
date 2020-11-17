@@ -3,6 +3,8 @@
 // Project 7: Huffman
 // Filename: HuffProcessor.java
 
+import java.util.*;
+
 /**
  * Although this class has a history of several years,
  * it is starting from a blank-slate, new and clean implementation
@@ -46,14 +48,95 @@ public class HuffProcessor {
 	 */
 	public void compress(BitInputStream in, BitOutputStream out){
 
-		// remove all this code when implementing compress
-		while (true){
-			int val = in.readBits(BITS_PER_WORD);
-			if (val == -1) break;
-			out.writeBits(BITS_PER_WORD, val);
+		// create counts and bits
+		int[] counts = new int[1 + ALPH_SIZE];
+		int bits = in.readBits(BITS_PER_WORD);
+
+		// create while loop
+		while (bits != -1) {
+			counts[bits] += 1;
+			bits = in.readBits(BITS_PER_WORD);
 		}
+
+		// if counts is PSEUDO_EOF
+		counts[PSEUDO_EOF] = 1;
+
+		// create priority queue
+		PriorityQueue<HuffNode> pq = new PriorityQueue<>();
+
+		// iterate through priority queue
+		for (int i = 0; i < counts.length; i++) {
+			// if counts is greater than 0 add to priority queue
+			if (counts[i] > 0) {
+				pq.add(new HuffNode(i, counts[i], null, null));
+			}
+		}
+
+		// while loop
+		while (pq.size() > 1) {
+			HuffNode left = pq.remove();
+			HuffNode right = pq.remove();
+			HuffNode tree = new HuffNode(0, left.myWeight + right.myWeight, left, right);
+			pq.add(tree);
+		}
+
+		HuffNode root = pq.remove();
+
+		// create array
+		String[] array = new String[1 + ALPH_SIZE];
+		// call helper
+		buildHuffman(root, array, "");
+
+		out.writeBits(BITS_PER_INT, HUFF_TREE);
+		// call write header helper
+		helper(root, out);
+
+		in.reset();
+
+		// while loop
+		while (true)
+		{
+			int beep = in.readBits(BITS_PER_WORD);
+			if (beep == -1) break;
+
+			String s = array[beep];
+			if (s != null)
+				out.writeBits(s.length(), Integer.parseInt(s, 2));
+		}
+
+		String eof = array[PSEUDO_EOF];
+
+		out.writeBits(eof.length(), Integer.parseInt(eof, 2));
+
 		out.close();
+
 	}
+
+	private void buildHuffman(HuffNode root, String[] array, String string) {
+		// if null
+		if (root.myRight == null && root.myLeft == null) {
+			array[root.myValue] = string;
+			return;
+		}
+		// recursive calls
+		buildHuffman(root.myLeft, array, string + "0");
+		buildHuffman(root.myRight, array, string + "1");
+	}
+
+	private void helper(HuffNode root, BitOutputStream out) {
+		// if not empty
+		if (root.myRight != null || root.myLeft != null) {
+			out.writeBits(1, 0);
+			// recursive calls
+			helper(root.myLeft, out);
+			helper(root.myRight, out);
+		}
+		else {
+			out.writeBits(1, 1);
+			out.writeBits(1 + BITS_PER_WORD, root.myValue);
+		}
+	}
+
 	/**
 	 * Decompresses a file. Output file must be identical bit-by-bit to the
 	 * original.
@@ -69,8 +152,6 @@ public class HuffProcessor {
 		if (bits != HUFF_TREE) {
 			throw new HuffException("invalid magic number "+ bits);
 		}
-		// remove all code below this point for P7
-
 		// call helper function
 		HuffNode root = readTree(in);
 		HuffNode current = root;
