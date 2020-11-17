@@ -1,3 +1,7 @@
+// Cate Schick
+// CompSci 201
+// Project 7: Huffman
+// Filename: HuffProcessor.java
 
 /**
  * Although this class has a history of several years,
@@ -61,18 +65,72 @@ public class HuffProcessor {
 	 */
 	public void decompress(BitInputStream in, BitOutputStream out){
 
-		int magic = in.readBits(BITS_PER_INT);
-		if (magic != HUFF_TREE) {
-			throw new HuffException("invalid magic number "+magic);
+		int bits = in.readBits(BITS_PER_INT);
+		if (bits != HUFF_TREE) {
+			throw new HuffException("invalid magic number "+ bits);
 		}
 		// remove all code below this point for P7
 
-		out.writeBits(BITS_PER_INT,magic);
-		while (true){
-			int val = in.readBits(BITS_PER_WORD);
-			if (val == -1) break;
-			out.writeBits(BITS_PER_WORD, val);
+		// call helper function
+		HuffNode root = readTree(in);
+		HuffNode current = root;
+
+		// create while loop
+		while (true) {
+
+			int boop = in.readBits(1);
+
+			// if bits = -1, throw exception
+			if (boop == -1) {
+				throw new HuffException("Cannot read bits");
+			}
+
+			else {
+				// if bits = 0
+				if (boop == 0) {
+					current = current.myLeft;
+				}
+
+				else {
+					current = current.myRight;
+				}
+
+				if (current.myRight == null && current.myLeft == null) {
+					// if myValue is PseudoEOF, break loop
+					if (current.myValue == PSEUDO_EOF) {
+						break;
+					}
+
+					// otherwise, keep going
+					else {
+						// write bits
+						out.writeBits(BITS_PER_WORD, current.myValue);
+
+						// set curr = node
+						current = root;
+					}
+				}
+
+			}
+			// call out.close
+			out.close();
 		}
-		out.close();
+
+	}
+	public HuffNode readTree(BitInputStream in) {
+		int bit = in.readBits(1);
+
+		if (bit == -1) {
+			throw new HuffException("Failed to read bits");
+		}
+
+		if (bit == 0) {
+			HuffNode left = readTree(in);
+			HuffNode right = readTree(in);
+			return new HuffNode(0, 0, left, right);
+		}
+		else {
+			return new HuffNode((in.readBits(1 + BITS_PER_WORD)), 0, null, null);
+		}
 	}
 }
