@@ -1,7 +1,7 @@
 # CompSci201 Project 7: Huffman
 
 <h2>Introduction</h2>
-This project was done as a part of CompSci201: Data Structures and Algorithms at Duke University. 
+This project was completed for <i>CompSci201: Data Structures and Algorithms</i> at Duke University. 
 
 <h2>Project Overview</h2>
 <h3>Taken from the project description:</h3>
